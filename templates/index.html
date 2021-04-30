@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Smart Room System</title>
+        <!-- Bootstraps Java Scipts Links -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
+        <!-- JQuery links  -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        
+        <!--High CHART LIVE  -->
+        <script src="http://code.highcharts.com/highcharts.js"></script>
+        <script src="http://code.highcharts.com/highcharts-more.js"></script>
+        <script src="http://code.highcharts.com/modules/exporting.js"></script>
+    </head>
+    <body>
+        <h1> Smart Room System </h1>
+        <h2> Change Lighting Mode </h2>
+        <ul>
+            <li><a href="/LightingMode0">Lighting Mode 0</a></li>
+            <li><a href="/LightingMode1">Lighting Mode 1</a></li>
+            <li><a href="/LightingMode2">Lighting Mode 2</a></li>
+            <li><a href="/LightingMode3">Lighting Mode 3</a></li>
+            <li><a href="/LightingMode4">Lighting Mode 4</a></li>
+        </ul>
+        <h2> Change Light Level conditional rule </h2>
+        <ul>
+            <li><a href="/LightLevel50">Light level 50</a></li>
+            <li><a href="/LightLevel100">Light level 100</a></li>
+            <li><a href="/LightLevel150">Light level 150</a></li>
+            <li><a href="/LightLevel200">Light level 200</a></li>
+        </ul>
+        <h2> Change Light colour </h2>
+        <ul>
+            <li><a href="/LightColourWhite">Light Colour White</a></li>
+            <li><a href="/LightColourRed">Light Colour Red</a></li>
+            <li><a href="/LightColourGreen">Light Colour Green</a></li>
+            <li><a href="/LightColourBlue">Light Colour Blue</a></li>
+            <li><a href="/LightColourCyan">Light Colour Cyan</a></li>
+            <li><a href="/LightColourYellow">Light Colour Yellow</a></li>
+        </ul>
+        <h2>Light that is currently on</h2>
+        {% for ledpin in ledpins %}
+            <p>{{ ledpins[ledpin].name }}
+                {% if ledpins[ledpin].state == 1 %}
+                    is currently <strong>on</strong>
+                {% else %}
+                    is currently <strong>off</strong>
+                {% endif %}
+            </p>
+         {% endfor %}
+         <h2>Status</h2>
+         {% for state in status %}
+            {% if status[state].name != "light colour" %}
+                <p>{{ status[state].name }} = <strong>{{status[state].state}}</strong></p>
+            {% else %}
+                <p> Light Colours = 
+                    {% if status[state].state == 0 %}
+                        <strong>White</strong>
+                    {% endif %}
+                    {% if status[state].state == 1 %}
+                        <strong>Red</strong>
+                    {% endif %}
+                    {% if status[state].state == 2 %}
+                        <strong>Green</strong>
+                    {% endif %}
+                    {% if status[state].state == 3 %}
+                        <strong>Blue</strong>
+                    {% endif %}
+                    {% if status[state].state == 4 %}
+                        <strong>Cyan</strong>
+                    {% endif %}
+                    {% if status[state].state == 5 %}
+                        <strong>Yellow</strong>
+                    {% endif %}
+                </p>
+            {% endif %}
+         {% endfor %}
+         <h2>User that is in the room</h2>
+         {% for users in user %}
+            {% if user[users].state == 1 %}
+                <p>{{ user[users].name }}
+                    = <strong>{{ user[users].state }}</strong>
+                </p>
+            {% endif %}
+         {% endfor %}
+         
+         <div class="container-fluid">
+            <div class="row">
+                <div class="container-fluid" id="data-container">
+
+                </div>
+            </div>
+        </div>
+         
+        <script>
+            var chart;
+
+            function requestData() {
+                var requests = $.get('/ldrdata'); // Ajax call to get the Data from Flask
+                var tm = requests.done(function (result) {
+                    var series = chart.series[0], shift = series.data.length > 20;
+                    chart.series[0].addPoint(result, true, shift); // add the point
+                    setTimeout(requestData, 1000); // call it again after one second
+                });
+            }
+
+            $(document).ready(function() {
+                chart = new Highcharts.Chart({
+                    chart: {
+                        renderTo: 'data-container',
+                        defaultSeriesType: 'spline',
+                        events: {
+                            load: requestData
+                        }
+                    },
+                    title: {
+                        text: 'LDR Live Line Graph'
+                    },
+                    time: {
+                        useUTC: false
+                    },
+                    xAxis: {
+                        type: 'datetime',
+                        tickInterval: 1000,
+                        maxZoom: 20 * 1000,
+                        title: {
+                            text: 'Time',
+                            margin: 20
+                        }
+                    },
+                    yAxis: {
+                        minPadding: 0.2,
+                        maxPadding: 0.2,
+                        title: {
+                            text: 'LDR Value',
+                            margin: 20
+                        }
+                    },
+                    series: [{
+                        name: 'LDR Value',
+                        data: [],
+                        pointStart: Date.now(),
+                        pointInterval: 1000
+                    }]
+                });
+
+            });
+        </script>
+    </body>
+</html>
